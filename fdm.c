@@ -20,7 +20,7 @@ double*** criaMatriz(int x, int y, int z, double value);
 
 double*** alocarMatriz(int x, int y, int z);
 
-void desalocarMatriz(double ***matriz, int x, int y, int z);
+void desalocarMatriz(double ****matriz, int x, int y, int z);
 
 void copiarMatriz(double ****cola, double ***copia, int x, int y, int z);
 
@@ -33,9 +33,9 @@ void print_matriz(double ***m, int x, int y, int z);
 
 int main(int argc, char const *argv[])
 {
-    double h = 2;
+    double h = 1;
     double tempo, ap = 0;
-    int tam = 5, as;
+    int tam = 10, as;
     double coef_cond = 1.0;
 
     while (1)
@@ -66,7 +66,13 @@ int main(int argc, char const *argv[])
             printf("resposta inesperada\n");
     }
 
-    tempo = pow(h, 2)/ap*coef_cond;
+    tempo = pow(h, 2)/ap*coef_cond+1;
+
+    while (tempo > pow(h, 2)/ap*coef_cond)
+    {
+        printf("Digite um valor para tempo, tal que 'tempo < %lf'\n", pow(h, 2)/ap*coef_cond);
+        scanf("%lf", &tempo);
+    }
 
     printf("Considere o valor da condutividade termica em cm^2/s\n");
 
@@ -76,10 +82,6 @@ int main(int argc, char const *argv[])
 
 double*** criaMatriz(int x, int y, int z, double value)
 {
-    x += 2;
-    y += 2;
-    z += 2;
-
     double ***matriz = alocarMatriz(x, y, z); //Aloca um Vetor de Ponteiros
 
     for (int i = 0; i < x; i++)
@@ -114,21 +116,17 @@ double*** alocarMatriz(int x, int y, int z)
     return matriz;
 }
 
-void desalocarMatriz(double ***matriz, int x, int y, int z)
+void desalocarMatriz(double ****matriz, int x, int y, int z)
 {
-    x += 2;
-    y += 2;
-    z += 2;
-
     for (int i = 0; i < x; i++)
     {
         for (int j = 0; j < y; j++)
         {
-            free(matriz[i][j]);
+            free((*matriz)[i][j]);
         }
-        free(matriz[i]);
+        free((*matriz)[i]);
     }
-    free(matriz);
+    free((*matriz));
 }
 
 void copiarMatriz(double ****cola, double ***copia, int x, int y, int z)
@@ -162,9 +160,9 @@ double*** modTempPlane(double ***m, int x, int y, int z, int pos, double temp)
     else
         nk = (t - 1) / 2;
 
-    for (int j = 0; j <= y; j++)
+    for (int j = 0; j < y; j++)
     {
-        for (int k = 0; k <= z; k++)
+        for (int k = 0; k < z; k++)
         {
             if (nj-1 < j < z-nj && nk-1 < k < z-nk)
                 m[pos][j][k] = temp;
@@ -177,13 +175,21 @@ double*** modTempPlane(double ***m, int x, int y, int z, int pos, double temp)
 void calorMDF(double h, double tempo, int dimensao, double alfa)
 {
     int d2 = dimensao+2;
-    double ***u = modTempPlane(criaMatriz(dimensao, dimensao, dimensao, 35), dimensao, dimensao, dimensao, 0, 60);
+    double temp = 35, mod_temp = 0;
+
+    // printf("Digite a temperatura base do cubo:\n");
+    // scanf("%lf", &temp);
+
+    printf("Digite a temperatura que sera aplicada a uma area do cubo:\n");
+    scanf("%lf", &mod_temp);
+
+    double ***u = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
     double ***u2 = alocarMatriz(d2, d2, d2);
     copiarMatriz(&u2, u, d2, d2, d2);
 
     int on = 1;
     double fourier, c_vizinhas_som;
-    double Z = 0, valor = 0;
+    double Z = 0, Z2 = 0, valor = 0;
 
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
@@ -208,9 +214,9 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                         );
 
                         u2[i][j][k] = u[i][j][k] + fourier * (c_vizinhas_som - (6 * u[i][j][k])); // Equação
-                        // printf("%lf + (%lf/%lf * %lf) * (%lf - 6 *(%lf))\n",u[i][j][k], tempo, pow(h, 2), alfa, c_vizinhas_som, u[i][j][k]);
+                        // printf("%lf + (%lf/%lf * %lf) * (%lf - %lf)\n",u[i][j][k], tempo, pow(h, 2), alfa, c_vizinhas_som, 6*u[i][j][k]);
                         // printf("u2[%d][%d][%d] = %lf\n", i, j, k, u2[i][j][k]);
-                        // sleep(2);
+                        // sleep(0.5);
                     }
                 }
             }
@@ -222,27 +228,61 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
         // printf("Z = %lf\n\n", Z);
         valor = 0;
 
-        for (int i = 0; i <= dimensao+1; i++)
-            for (int j = 0; j <= dimensao+1; j++)
-                for (int k = 0; k <= dimensao+1; k++)
+        // for (int i = 0; i < d2; i++)
+        //     for (int j = 0; j < d2; j++)
+        //         for (int k = 0; k < d2; k++)
+        //         {
+        //             valor += abs(u[i][j][k] - u2[i][j][k]);
+        //             // printf("valor = %lf = |%lf - %lf|\n\n", valor, u[i][j][k], u2[i][j][k]);
+        //             // sleep(1);
+        //         }
+
+        for (int i = 1; i <= dimensao; i++)
+            for (int j = 1; j <= dimensao; j++)
+                for (int k = 1; k <= dimensao; k++)
                 {
                     valor += abs(u[i][j][k] - u2[i][j][k]);
                     // printf("valor = %lf = |%lf - %lf|\n\n", valor, u[i][j][k], u2[i][j][k]);
                     // sleep(1);
                 }
 
+
         Z = valor / ((d2) * (d2) * (d2));
 
         printf("Z = %lf\n\n", Z);
+        // sleep(1);
 
-        if (Z < 0)
+        if (Z <= 0) //  || Z == Z2
         {
             printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
             on = 0;
         }
+        else
+            Z2 = Z;
 
-        copiarMatriz(&u, u2, dimensao, dimensao, dimensao);
+        copiarMatriz(&u, u2, d2, d2, d2);
     }
+
+    FILE *arq;
+
+    if ((arq = fopen("log.txt", "w")) == NULL);
+        printf("Erro ao abrir arquivo de log\n");
+
+    for (int i = 1; i <= dimensao; i++)
+    {
+        for (int j = 1; j <= dimensao; j++)
+        {
+            for (int k = 1; k <= dimensao; k++)
+                fprintf(arq, "%lf  ", u[i][j][k]);
+            fprintf(arq, "\n");
+        }
+        fprintf(arq, "\n\n");
+    }
+
+    fclose(arq);
+
+    desalocarMatriz(&u, d2, d2, d2);
+    desalocarMatriz(&u2, d2, d2, d2);
 }
 
 void print_matriz(double ***m, int x, int y, int z)
