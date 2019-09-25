@@ -220,8 +220,27 @@ def calorMDFThread(h, tempo, dimensao, alfa):
     while on:
         u2 = u[:]
 
-        for i in range(dimensao):
-            q.put(u[i])
+        qntx = 2
+        qnty = 2
+        qntz = 2
+
+        subx = int(len(u) / qntx)
+        suby = int(len(u[0]) / qnty)
+        subz = int(len(u[0][0]) / qntz)
+
+        for i in range(qntx):
+            cx = (i * subx)
+            fx = ((i * subx) + subx)
+            for j in range(qnty):
+                cy = (j * suby)
+                fy = ((j * suby) + suby)
+                for k in range(qntz):
+                    cz = (k * subz)
+                    fz = ((k * subz) + subz)
+
+                    matriz = [[u[i][j][cz:fz] for j in range(cy, fy)] for i in range(cx, fx)]
+                    print(matriz)
+                    q.put(matriz)
 
         q.join()
 
@@ -248,20 +267,21 @@ def calorMDFThread(h, tempo, dimensao, alfa):
 
         u = u2[:]
 
-def calculo_do_ponto(i):
+def calculo_do_ponto(matriz):
     '''Calculo da função'''
-    for j in range(dimensao):
-        for k in range(dimensao):
-            if 0 < i <= dimensao and 0 < j <= dimensao and 0 < k <= dimensao:
-                c_vizinhas_som = (u[i][j + 1][k]
-                                  + u[i][j - 1][k]
-                                  + u[i - 1][j][k]
-                                  + u[i + 1][j][k]
-                                  + u[i][j][k + 1]
-                                  + u[i][j][k - 1]
-                                  )
+    for i in range(len(matriz)):
+        for j in range(len(matriz[i])):
+            for k in range(len(matriz[i][j])):
+                if 0 < i <= dimensao and 0 < j <= dimensao and 0 < k <= dimensao:
+                    c_vizinhas_som = (matriz[i][j + 1][k]
+                                      + matriz[i][j - 1][k]
+                                      + matriz[i - 1][j][k]
+                                      + matriz[i + 1][j][k]
+                                      + matriz[i][j][k + 1]
+                                      + matriz[i][j][k - 1]
+                                      )
 
-                u2[i][j][k] = u[i][j][k] + fourier * (c_vizinhas_som - (6 * u[i][j][k]))
+                    matriz2[i][j][k] = matriz[i][j][k] + fourier * (c_vizinhas_som - (6 * matriz[i][j][k]))
 
 
 
