@@ -3,6 +3,7 @@ from queue import Queue
 
 q = None
 fourier = 0
+w_lock = Lock()
 solido = []
 solido2 = []
 
@@ -46,7 +47,7 @@ def main():
 
     print("Considere o valor da condutividade termica em cm^2/s")
 
-    calor_mdf(h, tempo, tam, coef_cond)
+    calor_mdf_thread(h, tempo, tam, coef_cond)
 
 
 def cria_matriz(x, y, z, value):
@@ -88,8 +89,8 @@ def mod_temp_plano(m, pos, temp):
 
 
 def calor_mdf(h, tempo, dimensao, alfa):
-    # global solido
-    # global solido2
+    global solido
+    global solido2
     global fourier
 
     d2 = dimensao+2
@@ -197,7 +198,7 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
 
     mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
 
-    solido = mod_temp_plano(cria_matriz(d2, d2, d2, 35), 0, mod_temp)
+    solido = mod_temp_plano(cria_matriz(d2, d2, d2, 35), 1, mod_temp)
 
     solido2 = [[solido[i][j][:] for j in range(len(solido[i]))] for i in range(len(solido))]
 
@@ -227,7 +228,7 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
 
     while on:
         solido2 = [[solido[i][j][:] for j in range(len(solido[i]))] for i in range(len(solido))]
-        print(len(solido))
+
         for i in range(qntx):
             cx = (i * subx)+1
             fx = ((i * subx) + subx)
@@ -246,8 +247,8 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
                     q.put([[cx, fx], [cy, fy], [cz, fz]])
 
         q.join()
-
-        # print_matriz(solido2)
+        print_matriz(solido2)
+        # print_matriz(solido)
 
         valor = 0
 
@@ -272,7 +273,6 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
 
 
 def calculo_do_ponto(coords):
-    print("executei")
     cx, fx = coords[0]
     cy, fy = coords[1]
     cz, fz = coords[2]
@@ -284,7 +284,7 @@ def calculo_do_ponto(coords):
     for i in range(len(solido)):
         for j in range(len(solido[i])):
             for k in range(len(solido[i][j])):
-                if cx < i <= fx and cy < j <= fy and cz < k <= fz:
+                if cx <= i <= fx and cy <= j <= fy and cz <= k <= fz:
                     c_vizinhas_som = (solido[i][j + 1][k]
                                       + solido[i][j - 1][k]
                                       + solido[i - 1][j][k]
@@ -294,7 +294,9 @@ def calculo_do_ponto(coords):
                                       )
 
                     # colocar lock aqui
+                    w_lock.acquire()
                     solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k]))
+                    w_lock.release()
 
 
 def threader():
