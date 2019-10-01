@@ -1,5 +1,6 @@
 from threading import *
 from queue import Queue
+from time import *
 
 q = None
 fourier = 0
@@ -47,7 +48,7 @@ def main():
 
     print("Considere o valor da condutividade termica em cm^2/s")
 
-    calor_mdf_thread(h, tempo, tam, coef_cond)
+    calor_mdf(h, tempo, tam, coef_cond)
 
 
 def cria_matriz(x, y, z, value):
@@ -89,6 +90,7 @@ def mod_temp_plano(m, pos, temp):
 
 
 def calor_mdf(h, tempo, dimensao, alfa):
+    inicio = time()
     global solido
     global solido2
     global fourier
@@ -171,6 +173,7 @@ def calor_mdf(h, tempo, dimensao, alfa):
 
         # solido = solido2[:]
         solido = [[solido2[i][j][:] for j in range(len(solido2[i]))] for i in range(len(solido2))]
+    print("Tempo=", time() - inicio)
 
 
 def print_matriz(m):
@@ -186,6 +189,7 @@ def print_matriz(m):
 
 
 def calor_mdf_thread(h, tempo, dimensao, alfa):
+    inicio = time()
     global solido
     global solido2
     global fourier
@@ -213,7 +217,7 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
     global q
     q = Queue()
 
-    for x in range(min(dimensao, 100)):
+    for x in range(8):
         t = Thread(target=threader)
         t.daemon = True
         t.start()
@@ -275,15 +279,16 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
             Z2 = Z
 
         solido = [[solido2[i][j][:] for j in range(len(solido2[i]))] for i in range(len(solido2))]
+    print("Tempo=", time() - inicio)
 
 
 def calculo_do_ponto(coords):
-    cx, fx = coords[0]
-    cy, fy = coords[1]
-    cz, fz = coords[2]
     global solido
     global solido2
     global fourier
+    cx, fx = coords[0]
+    cy, fy = coords[1]
+    cz, fz = coords[2]
 
     '''Calculo da função'''
     for i in range(len(solido)):
