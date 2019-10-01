@@ -48,7 +48,7 @@ def main():
 
     print("Considere o valor da condutividade termica em cm^2/s")
 
-    calor_mdf(h, tempo, tam, coef_cond)
+    calor_mdf_thread(h, tempo, tam, coef_cond)
 
 
 def cria_matriz(x, y, z, value):
@@ -90,6 +90,8 @@ def mod_temp_plano(m, pos, temp):
 
 
 def calor_mdf(h, tempo, dimensao, alfa):
+    mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
+
     inicio = time()
     global solido
     global solido2
@@ -101,8 +103,6 @@ def calor_mdf(h, tempo, dimensao, alfa):
 
     # print("Digite a temperatura base do cubo:\n")
     # scanf("%lf", &temp)
-
-    mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
 
     solido = mod_temp_plano(cria_matriz(d2, d2, d2, 35), 0, mod_temp)
 
@@ -137,7 +137,7 @@ def calor_mdf(h, tempo, dimensao, alfa):
 
                         solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k]))  # Equação
 
-        print_matriz(solido2)
+        # print_matriz(solido2)
 
         valor = 0
 
@@ -189,6 +189,8 @@ def print_matriz(m):
 
 
 def calor_mdf_thread(h, tempo, dimensao, alfa):
+    mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
+
     inicio = time()
     global solido
     global solido2
@@ -199,8 +201,6 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
 
     # print("Digite a temperatura base do cubo:\n")
     # scanf("%lf", &temp)
-
-    mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
 
     solido = mod_temp_plano(cria_matriz(d2, d2, d2, 35), 1, mod_temp)
 
@@ -214,10 +214,12 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
 
     fourier = alfa ** 2 * (tempo / h ** 2)
 
+    ini_thread = time()
+
     global q
     q = Queue()
 
-    for x in range(8):
+    for x in range(3):
         t = Thread(target=threader)
         t.daemon = True
         t.start()
@@ -249,6 +251,8 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
                 # print(matriz)
                 intervalos.append([[cx, fx], [cy, fy], [cz, fz]])
 
+    tempo_thread = time() - ini_thread
+
     while on:
         solido2 = [[solido[i][j][:] for j in range(len(solido[i]))] for i in range(len(solido))]
 
@@ -256,8 +260,7 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
             q.put(intervalo)
 
         q.join()
-        print_matriz(solido2)
-        # print_matriz(solido)
+        # print_matriz(solido2)
 
         valor = 0
 
@@ -279,7 +282,9 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
             Z2 = Z
 
         solido = [[solido2[i][j][:] for j in range(len(solido2[i]))] for i in range(len(solido2))]
+
     print("Tempo=", time() - inicio)
+    print("Tempo de inicialização a mais das threads=", tempo_thread)
 
 
 def calculo_do_ponto(coords):
