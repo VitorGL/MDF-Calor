@@ -179,7 +179,7 @@ def print_matriz(m):
         for j in range(len(m[i])):
             for k in range(len(m[i][j])):
                 # print("M(%d)(%d)(%d) = %lf  ", i, j, k, m[i][j][k])
-                print("{0:f}  ".format(m[i][j][k]), end="")
+                print("{0:.8f}  ".format(m[i][j][k]), end="")
             print()
 
         print("\n")
@@ -226,25 +226,30 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
     suby = int((len(solido[0])-2) / qnty)
     subz = int((len(solido[0][0])-2) / qntz)
 
+    intervalos = []
+
+    for i in range(qntx):
+        cx = (i * subx)+1
+        fx = ((i * subx) + subx)
+        # print(cx, fx)
+        for j in range(qnty):
+            cy = (j * suby)+1
+            fy = ((j * suby) + suby)
+            # print(cy, fy)
+            for k in range(qntz):
+                cz = (k * subz)+1
+                fz = ((k * subz) + subz)
+                # print(cz, fz)
+
+                # matriz = [[solido[i][j][cz:fz] for j in range(cy, fy)] for i in range(cx, fx)]
+                # print(matriz)
+                intervalos.append([[cx, fx], [cy, fy], [cz, fz]])
+
     while on:
         solido2 = [[solido[i][j][:] for j in range(len(solido[i]))] for i in range(len(solido))]
 
-        for i in range(qntx):
-            cx = (i * subx)+1
-            fx = ((i * subx) + subx)
-            # print(cx, fx)
-            for j in range(qnty):
-                cy = (j * suby)+1
-                fy = ((j * suby) + suby)
-                # print(cy, fy)
-                for k in range(qntz):
-                    cz = (k * subz)+1
-                    fz = ((k * subz) + subz)
-                    # print(cz, fz)
-
-                    # matriz = [[solido[i][j][cz:fz] for j in range(cy, fy)] for i in range(cx, fx)]
-                    # print(matriz)
-                    q.put([[cx, fx], [cy, fy], [cz, fz]])
+        for intervalo in intervalos:
+            q.put(intervalo)
 
         q.join()
         print_matriz(solido2)
