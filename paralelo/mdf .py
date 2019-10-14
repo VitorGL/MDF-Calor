@@ -12,16 +12,17 @@ solido2 = []
 def main():
     h = 1
     ap = 0
-    tam = 10
+    tam = 20
     ans = None
     coef_cond = 1.0
 
     while True:
 
-        ans = int(input("Precisao:\n"
-            "(1) - baixa\n"
-            "(2) - media\n"
-            "(3) - alta\n"))
+        # ans = int(input("Precisao:\n"
+        #     "(1) - baixa\n"
+        #     "(2) - media\n"
+        #     "(3) - alta\n"))
+        ans = 3
 
         if ans == 1:
             ap = 2.0
@@ -44,7 +45,8 @@ def main():
 
     while tempo > h**2/ap*coef_cond:
 
-        tempo = float(input("Digite um valor para tempo, tal que 'tempo < {}'".format(h**2/ap*coef_cond)))
+        # tempo = float(input("Digite um valor para tempo, tal que 'tempo < {}'".format(h**2/ap*coef_cond)))
+        tempo = 0.1
 
     print("Considere o valor da condutividade termica em cm^2/s")
 
@@ -189,7 +191,8 @@ def print_matriz(m):
 
 
 def calor_mdf_thread(h, tempo, dimensao, alfa):
-    mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
+    # mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
+    mod_temp = 20.0
 
     inicio = time()
     global solido
@@ -219,7 +222,7 @@ def calor_mdf_thread(h, tempo, dimensao, alfa):
     global q
     q = Queue()
 
-    for x in range(3):
+    for x in range(8):
         t = Thread(target=threader)
         t.daemon = True
         t.start()
