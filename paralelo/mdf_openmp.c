@@ -209,13 +209,15 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
+    #pragma parallel default(none) shared(solido2, solido) private(dimensao, fourier, c_vizinhas_som)
     while (on)
     {
-        copiarMatriz(&solido2, solido, d2, d2, d2);
+        #pragma omp single
+        {
+            copiarMatriz(&solido2, solido, d2, d2, d2);
+        }
 
-
-//        #pragma omp parallel for default(none) shared(solido2) private(dimensao, fourier, solido, c_vizinhas_som) schedule(dynamic, 8)
-        #pragma omp parallel for shared(solido2) schedule(dynamic, 8)
+        #pragma omp for schedule(dynamic, 8)
         for (int i = 1; i <= dimensao; i++)
         {
             for (int j = 1; j <= dimensao; j++)
@@ -231,7 +233,8 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                                        + solido[i][j][k+1]
                                        + solido[i][j][k-1]
                         );
-                        // #pragma omp critical (section1)
+
+                        #pragma omp critical
                         {
                             solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
                         }
