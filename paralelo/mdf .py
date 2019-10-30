@@ -12,7 +12,7 @@ solido2 = []
 def main():
     h = 1
     ap = 0
-    tam = 20
+    tam = 10
     ans = None
     coef_cond = 1.0
 
@@ -50,7 +50,7 @@ def main():
 
     print("Considere o valor da condutividade termica em cm^2/s")
 
-    calor_mdf_thread(h, tempo, tam, coef_cond)
+    calor_mdf(h, tempo, tam, coef_cond)
 
 
 def cria_matriz(x, y, z, value):
@@ -92,7 +92,7 @@ def mod_temp_plano(m, pos, temp):
 
 
 def calor_mdf(h, tempo, dimensao, alfa):
-    mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
+    # mod_temp = float(input("Digite a temperatura que sera aplicada a uma area do cubo:"))
 
     inicio = time()
     global solido
@@ -139,7 +139,7 @@ def calor_mdf(h, tempo, dimensao, alfa):
 
                         solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k]))  # Equação
 
-        # print_matriz(solido2)
+        print_matriz(solido2)
 
         valor = 0
 
