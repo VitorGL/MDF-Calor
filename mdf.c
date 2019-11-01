@@ -31,9 +31,6 @@ void calculoDoPonto(int **coords);
 
 void threader();
 
-double fourier;
-double ***solido;
-double ***solido2;
 // List *fila = NULL;
 int dimensao;
 // pthread_mutex_t w_lock;
@@ -203,8 +200,8 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
     clock_t ticks[2];
     ticks[0] = clock();
 
-    solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
-    solido2 = alocarMatriz(d2, d2, d2);
+    double ***solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
+    double ***solido2 = alocarMatriz(d2, d2, d2);
     copiarMatriz(&solido2, solido, d2, d2, d2);
 
     int on = 1;
@@ -215,7 +212,7 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
     while (on)
     {
-        copiarMatriz(&solido2, solido, d2, d2, d2);
+        // copiarMatriz(&solido2, solido, d2, d2, d2);
 
         for (int i = 1; i <= dimensao; i++)
         {
