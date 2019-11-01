@@ -1,20 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 #include <math.h>
+#include <time.h>
+
+// #include "fila.h"
 
 #ifdef _WIN32
 #include <Windows.h>
 #else
 #include <unistd.h>
 #endif
-
-// typedef struct _matriz
-// {
-//     double ***matriz;
-//     int x;
-//     int y;
-//     int z;
-// } MATRIZ;
 
 double*** criaMatriz(int x, int y, int z, double value);
 
@@ -30,13 +26,31 @@ void calorMDF(double h, double tempo, int dimensao, double alfa);
 
 void print_matriz(double ***m, int x, int y, int z);
 
+void calorMDFThread(double h, double tempo, int dimensao, double alfa);
+
+void calculoDoPonto(int **coords);
+
+void threader();
+
+double fourier;
+double ***solido;
+double ***solido2;
+// List *fila = NULL;
+int dimensao;
+// pthread_mutex_t w_lock;
+
 
 int main(int argc, char const *argv[])
 {
     double h = 1;
     double tempo, ap = 0;
-    int tam = 10, as;
+    int as;
     double coef_cond = 1.0;
+    // dimensao = 20;
+
+    printf("dimensao:\n");
+
+    scanf("%d", &dimensao);
 
     while (1)
     {
@@ -45,7 +59,9 @@ int main(int argc, char const *argv[])
             "(2) - media\n"
             "(3) - alta\n");
 
-        scanf("%d", &as);
+        // scanf("%d", &as);
+
+        as = 3;
 
         if (as == 1)
         {
@@ -66,17 +82,18 @@ int main(int argc, char const *argv[])
             printf("resposta inesperada\n");
     }
 
-    tempo = pow(h, 2)/ap*coef_cond+1;
+    // tempo = pow(h, 2)/ap*coef_cond+1;
 
-    while (tempo > pow(h, 2)/ap*coef_cond)
-    {
-        printf("Digite um valor para tempo, tal que 'tempo < %lf'\n", pow(h, 2)/ap*coef_cond);
-        scanf("%lf", &tempo);
-    }
+    // while (tempo > pow(h, 2)/ap*coef_cond)
+    // {
+    //     printf("Digite um valor para tempo, tal que 'tempo < %lf'\n", pow(h, 2)/ap*coef_cond);
+    //     scanf("%lf", &tempo);
+    // }
+    tempo = 0.1;
 
     printf("Considere o valor da condutividade termica em cm^2/s\n");
 
-    calorMDF(h, tempo, tam, coef_cond);
+    calorMDF(h, tempo, dimensao, coef_cond);
     return 0;
 }
 
@@ -180,12 +197,16 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
     // printf("Digite a temperatura base do cubo:\n");
     // scanf("%lf", &temp);
 
-    printf("Digite a temperatura que sera aplicada a uma area do cubo:\n");
-    scanf("%lf", &mod_temp);
+    // printf("Digite a temperatura que sera aplicada a uma area do cubo:\n");
+    // scanf("%lf", &mod_temp);
+    mod_temp = 0;
 
-    double ***u = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
-    double ***u2 = alocarMatriz(d2, d2, d2);
-    copiarMatriz(&u2, u, d2, d2, d2);
+    clock_t ticks[2];
+    ticks[0] = clock();
+
+    solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
+    solido2 = alocarMatriz(d2, d2, d2);
+    copiarMatriz(&solido2, solido, d2, d2, d2);
 
     int on = 1;
     double fourier, c_vizinhas_som;
@@ -195,7 +216,7 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
     while (on)
     {
-        copiarMatriz(&u2, u, d2, d2, d2);
+        copiarMatriz(&solido2, solido, d2, d2, d2);
 
         for (int i = 1; i <= dimensao; i++)
         {
@@ -205,54 +226,36 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                 {
                     if (0 < i <= dimensao && 0 < j <= dimensao && 0 < k <= dimensao)
                     {
-                        c_vizinhas_som = (u[i][j+1][k]
-                                       + u[i][j-1][k]
-                                       + u[i-1][j][k]
-                                       + u[i+1][j][k]
-                                       + u[i][j][k+1]
-                                       + u[i][j][k-1]
+                        c_vizinhas_som = (solido[i][j+1][k]
+                                       + solido[i][j-1][k]
+                                       + solido[i-1][j][k]
+                                       + solido[i+1][j][k]
+                                       + solido[i][j][k+1]
+                                       + solido[i][j][k-1]
                         );
 
-                        u2[i][j][k] = u[i][j][k] + fourier * (c_vizinhas_som - (6 * u[i][j][k])); // Equação
-                        // printf("%lf + (%lf/%lf * %lf) * (%lf - %lf)\n",u[i][j][k], tempo, pow(h, 2), alfa, c_vizinhas_som, 6*u[i][j][k]);
-                        // printf("u2[%d][%d][%d] = %lf\n", i, j, k, u2[i][j][k]);
-                        // sleep(0.5);
+                        solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
                     }
                 }
             }
         }
+       
+        // print_matriz(solido2, dimensao, dimensao, dimensao);
 
-        print_matriz(u2, dimensao, dimensao, dimensao);
-
-        // Z = 1 / ((d2) * (d2) * (d2));
-        // printf("Z = %lf\n\n", Z);
         valor = 0;
 
-        // for (int i = 0; i < d2; i++)
-        //     for (int j = 0; j < d2; j++)
-        //         for (int k = 0; k < d2; k++)
-        //         {
-        //             valor += abs(u[i][j][k] - u2[i][j][k]);
-        //             // printf("valor = %lf = |%lf - %lf|\n\n", valor, u[i][j][k], u2[i][j][k]);
-        //             // sleep(1);
-        //         }
-
+        // tentar fazer uma reduction aqui
         for (int i = 1; i <= dimensao; i++)
             for (int j = 1; j <= dimensao; j++)
                 for (int k = 1; k <= dimensao; k++)
-                {
-                    valor += abs(u[i][j][k] - u2[i][j][k]);
-                    // printf("valor = %lf = |%lf - %lf|\n\n", valor, u[i][j][k], u2[i][j][k]);
-                    // sleep(1);
-                }
+                    valor += abs(solido[i][j][k] - solido2[i][j][k]);
 
 
         Z = valor / ((d2) * (d2) * (d2));
 
         printf("Z = %lf\n\n", Z);
-        // sleep(1);
 
-        if (Z <= 0) //  || Z == Z2
+        if (Z <= 0)
         {
             printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
             on = 0;
@@ -260,29 +263,16 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
         else
             Z2 = Z;
 
-        copiarMatriz(&u, u2, d2, d2, d2);
+        copiarMatriz(&solido, solido2, d2, d2, d2);
     }
 
-    FILE *arq;
+    ticks[1] = clock();
 
-    if ((arq = fopen("log.txt", "w")) == NULL);
-        printf("Erro ao abrir arquivo de log\n");
+    double tempoTomado = (double)(ticks[1] - ticks[0]) / (double)(CLOCKS_PER_SEC); 
+    printf("Tempo = %.10lf segundos\n", tempoTomado);
 
-    for (int i = 1; i <= dimensao; i++)
-    {
-        for (int j = 1; j <= dimensao; j++)
-        {
-            for (int k = 1; k <= dimensao; k++)
-                fprintf(arq, "%lf  ", u[i][j][k]);
-            fprintf(arq, "\n");
-        }
-        fprintf(arq, "\n\n");
-    }
-
-    fclose(arq);
-
-    desalocarMatriz(&u, d2, d2, d2);
-    desalocarMatriz(&u2, d2, d2, d2);
+    desalocarMatriz(&solido, d2, d2, d2);
+    desalocarMatriz(&solido2, d2, d2, d2);
 }
 
 void print_matriz(double ***m, int x, int y, int z)
@@ -299,3 +289,24 @@ void print_matriz(double ***m, int x, int y, int z)
         printf("\n\n");
     }
 }
+
+// FILE *arq;
+
+//     if ((arq = fopen("log.txt", "w")) == NULL);
+//         printf("Erro ao abrir arquivo de log\n");
+
+//     for (int i = 1; i <= dimensao; i++)
+//     {
+//         for (int j = 1; j <= dimensao; j++)
+//         {
+//             for (int k = 1; k <= dimensao; k++)
+//                 fprintf(arq, "%lf  ", u[i][j][k]);
+//             fprintf(arq, "\n");
+//         }
+//         fprintf(arq, "\n\n");
+//     }
+
+//     fclose(arq);
+
+//     desalocarMatriz(&u, d2, d2, d2);
+//     desalocarMatriz(&u2, d2, d2, d2);

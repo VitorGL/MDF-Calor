@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <math.h>
 #include <time.h>
+
 // #include "fila.h"
 
 #ifdef _WIN32
@@ -45,7 +46,11 @@ int main(int argc, char const *argv[])
     double tempo, ap = 0;
     int as;
     double coef_cond = 1.0;
-    dimensao = 20;
+    // dimensao = 20;
+
+    printf("dimensao:\n");
+
+    scanf("%d", &dimensao);
 
     while (1)
     {
@@ -196,8 +201,8 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
     // scanf("%lf", &mod_temp);
     mod_temp = 0;
 
-    clock_t Ticks[2];
-    Ticks[0] = clock();
+    clock_t ticks[2];
+    ticks[0] = clock();
 
     solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
     solido2 = alocarMatriz(d2, d2, d2);
@@ -209,15 +214,10 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
-    #pragma parallel default(none) shared(solido2, solido) private(dimensao, fourier, c_vizinhas_som)
     while (on)
     {
-        #pragma omp single
-        {
-            copiarMatriz(&solido2, solido, d2, d2, d2);
-        }
+        copiarMatriz(&solido2, solido, d2, d2, d2);
 
-        #pragma omp for schedule(dynamic, 8)
         for (int i = 1; i <= dimensao; i++)
         {
             for (int j = 1; j <= dimensao; j++)
@@ -234,47 +234,42 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                                        + solido[i][j][k-1]
                         );
 
-                        #pragma omp critical
-                        {
-                            solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
-                        }
+                        solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
                     }
                 }
             }
         }
+       
+        // print_matriz(solido2, dimensao, dimensao, dimensao);
 
-        #pragma omp single
+        valor = 0;
+
+        // tentar fazer uma reduction aqui
+        for (int i = 1; i <= dimensao; i++)
+            for (int j = 1; j <= dimensao; j++)
+                for (int k = 1; k <= dimensao; k++)
+                    valor += abs(solido[i][j][k] - solido2[i][j][k]);
+
+
+        Z = valor / ((d2) * (d2) * (d2));
+
+        printf("Z = %lf\n\n", Z);
+
+        if (Z <= 0)
         {
-
-    //        print_matriz(solido2, dimensao, dimensao, dimensao);
-
-            valor = 0;
-
-            for (int i = 1; i <= dimensao; i++)
-                for (int j = 1; j <= dimensao; j++)
-                    for (int k = 1; k <= dimensao; k++)
-                        valor += abs(solido[i][j][k] - solido2[i][j][k]);
-
-
-            Z = valor / ((d2) * (d2) * (d2));
-
-            printf("Z = %lf\n\n", Z);
-
-            if (Z <= 0)
-            {
-                printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
-                on = 0;
-            }
-            else
-                Z2 = Z;
-
-            copiarMatriz(&solido, solido2, d2, d2, d2);
+            printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
+            on = 0;
         }
+        else
+            Z2 = Z;
+
+        copiarMatriz(&solido, solido2, d2, d2, d2);
     }
 
-    Ticks[1] = clock();
-    double tempos = (Ticks[1] - Ticks[0]);
-    printf("Tempo = %lf\n", tempo);
+    ticks[1] = clock();
+
+    double tempoTomado = (double)(ticks[1] - ticks[0]) / (double)(CLOCKS_PER_SEC); 
+    printf("Tempo = %.10lf segundos\n", tempoTomado);
 
     desalocarMatriz(&solido, d2, d2, d2);
     desalocarMatriz(&solido2, d2, d2, d2);
@@ -294,3 +289,24 @@ void print_matriz(double ***m, int x, int y, int z)
         printf("\n\n");
     }
 }
+
+// FILE *arq;
+
+//     if ((arq = fopen("log.txt", "w")) == NULL);
+//         printf("Erro ao abrir arquivo de log\n");
+
+//     for (int i = 1; i <= dimensao; i++)
+//     {
+//         for (int j = 1; j <= dimensao; j++)
+//         {
+//             for (int k = 1; k <= dimensao; k++)
+//                 fprintf(arq, "%lf  ", u[i][j][k]);
+//             fprintf(arq, "\n");
+//         }
+//         fprintf(arq, "\n\n");
+//     }
+
+//     fclose(arq);
+
+//     desalocarMatriz(&u, d2, d2, d2);
+//     desalocarMatriz(&u2, d2, d2, d2);
