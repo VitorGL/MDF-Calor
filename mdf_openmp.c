@@ -32,12 +32,7 @@ void calculoDoPonto(int **coords);
 
 void threader();
 
-double fourier;
-double ***solido;
-double ***solido2;
 // List *fila = NULL;
-int dimensao;
-// pthread_mutex_t w_lock;
 
 
 int main(int argc, char const *argv[])
@@ -46,7 +41,7 @@ int main(int argc, char const *argv[])
     double tempo, ap = 0;
     int as;
     double coef_cond = 1.0;
-    // dimensao = 20;
+    int dimensao = 10;
 
     printf("dimensao:\n");
 
@@ -204,8 +199,8 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 	clock_t ticks[2];
     ticks[0] = clock();
 
-    solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
-    solido2 = alocarMatriz(d2, d2, d2);
+    double ***solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
+    double ***solido2 = alocarMatriz(d2, d2, d2);
     copiarMatriz(&solido2, solido, d2, d2, d2);
 
     int on = 1;
@@ -214,15 +209,16 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
-    #pragma parallel default(none) shared(solido2, solido) private(dimensao, fourier, c_vizinhas_som)
+    #pragma omp parallel //default(none) shared(solido2, solido, valor) private(on, dimensao, d2, fourier, c_vizinhas_som, Z, Z2)
     while (on)
     {
+
         #pragma omp single
         {
             copiarMatriz(&solido2, solido, d2, d2, d2);
         }
 
-        #pragma omp for schedule(dynamic)
+        #pragma omp for schedule(dynamic, 8)
         for (int i = 1; i <= dimensao; i++)
         {
             for (int j = 1; j <= dimensao; j++)
@@ -247,15 +243,16 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                 }
             }
         }
+        #pragma omp barrier
 
         #pragma omp single
         {
-
-    //        print_matriz(solido2, dimensao, dimensao, dimensao);
+            print_matriz(solido2, dimensao, dimensao, dimensao);
 
             valor = 0;
 
             // tentar fazer uma reduction aqui
+            // #pragma omp for reduction(+: valor)
             for (int i = 1; i <= dimensao; i++)
                 for (int j = 1; j <= dimensao; j++)
                     for (int k = 1; k <= dimensao; k++)
