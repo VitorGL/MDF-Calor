@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+#include "omp.h"
 #include <math.h>
 #include <time.h>
 
@@ -30,19 +30,19 @@ int main(int argc, char const *argv[])
 
     double fourier = pow(1.0, 2) * (0.1/pow(1, 2));
 
-    // #pragma omp parallel
-    {
-        int tID = omp_get_thread_num();
-        printf("thread = %d\n", tID);
 
-        while(on)
+    while(on)
+    {
+        #pragma omp parallel
         {
-            // #pragma omp for
+            int tID = omp_get_thread_num();
+
+            #pragma omp for
             for (int i = 1; i < dimensao; i++)
             {
                 if (0 < i && i < dimensao-1)
                 {
-                    // #pragma omp critical
+                    #pragma omp critical
                     {
                         solido2[i] = solido[i] + (fourier * (solido[i+1] - (2 * solido[i]) + solido[i-1])); // Equação
                         printf("thread(%d)[%d] - for(calculo)\n", tID, i);
@@ -50,39 +50,34 @@ int main(int argc, char const *argv[])
                     }
                 }
             }
-            // #pragma omp barrier
+        }
 
-            // #pragma omp single
-            {
-                printIt(solido2, dimensao);
-                printIt(solido, dimensao);
+        printIt(solido2, dimensao);
+        printIt(solido, dimensao);
 
-                valor = 0;
-                
-                // #pragma omp for reduction(+: valor)
-                for (int i = 1; i < dimensao; i++)
-                {
-                    valor += abs(solido2[i] - solido[i]);
-                    printf("thread(%d) - for(valor)\n", tID);
-                }
+        valor = 0;
+        
+        // #pragma omp for reduction(+: valor)
+        for (int i = 1; i < dimensao; i++)
+        {
+            valor += abs(solido2[i] - solido[i]);
+        }
 
-                Z = valor / (dimensao);
+        Z = valor / (dimensao);
 
-                printf("Z = %lf\n\n", Z);
+        printf("Z = %lf\n\n", Z);
 
-                if (Z <= 0)
-                {
-                    printf("%lf < 0\n", Z);
-                    on = 0;
-                }
+        if (Z <= 0)
+        {
+            printf("%lf < 0\n", Z);
+            on = 0;
+        }
 
-                for (int i = 0; i < dimensao; ++i)
-                {
-                    solido[i] = solido2[i];
-                }
-            }
-        }   
-    }
+        for (int i = 0; i < dimensao; ++i)
+        {
+            solido[i] = solido2[i];
+        }
+    }   
 
     free(solido);
     free(solido2);
