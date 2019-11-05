@@ -204,13 +204,15 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
     double fourier, c_vizinhas_som;
     double Z = 0.0, Z2 = 0.0, valor = 0.0;
 
+    int tID;
+
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
     while (on)
     {
-        #pragma omp parallel //default(none) shared(solido2, solido) private(dimensao, fourier, c_vizinhas_som)
+        #pragma omp parallel default(none)
         {
-            int tID = omp_get_thread_num();
+            tID = omp_get_thread_num();
 
             #pragma omp for //schedule(dynamic)
             for (int i = 1; i <= dimensao; i++)
@@ -237,33 +239,36 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                     }
                 }
             }
+
+            // print_matriz(solido2, dimensao, dimensao, dimensao);
+            #pragma omp single
+            {
+                valor = 0;
+
+                // tentar fazer uma reduction aqui
+                // #pragma omp for reduction(+: valor)
+                for (int i = 1; i <= dimensao; i++)
+                    for (int j = 1; j <= dimensao; j++)
+                        for (int k = 1; k <= dimensao; k++)
+                            valor += abs(solido[i][j][k] - solido2[i][j][k]);
+
+
+                Z = valor / ((d2) * (d2) * (d2));
+
+                printf("Z = %lf\n\n", Z);
+
+                if (Z <= 0)
+                {
+                    printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
+                    on = 0;
+                }
+                else
+                    Z2 = Z;
+
+                copiarMatriz(&solido, solido2, d2, d2, d2);
+            }
+
         }
-
-        // print_matriz(solido2, dimensao, dimensao, dimensao);
-
-        valor = 0;
-
-        // tentar fazer uma reduction aqui
-        // #pragma omp for reduction(+: valor)
-        for (int i = 1; i <= dimensao; i++)
-            for (int j = 1; j <= dimensao; j++)
-                for (int k = 1; k <= dimensao; k++)
-                    valor += abs(solido[i][j][k] - solido2[i][j][k]);
-
-
-        Z = valor / ((d2) * (d2) * (d2));
-
-        printf("Z = %lf\n\n", Z);
-
-        if (Z <= 0)
-        {
-            printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
-            on = 0;
-        }
-        else
-            Z2 = Z;
-
-        copiarMatriz(&solido, solido2, d2, d2, d2);
     }
 
     ticks[1] = clock();
