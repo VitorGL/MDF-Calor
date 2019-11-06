@@ -188,14 +188,23 @@ double*** modTempPlane(double ***m, int x, int y, int z, int pos, double temp)
 void calorMDF(double h, double tempo, int dimensao, double alfa)
 {
     int d2 = dimensao+2;
-    double temp = 35, mod_temp = 0;
+
+    double temp = 35,
+    mod_temp = 0;
+
+    int on = 1;
+
+    double fourier,
+    c_vizinhas_som;
+
+    double Z = 0,
+    valor = 0;
 
     // printf("Digite a temperatura base do cubo:\n");
     // scanf("%lf", &temp);
 
     // printf("Digite a temperatura que sera aplicada a uma area do cubo:\n");
     // scanf("%lf", &mod_temp);
-    mod_temp = 0;
 
     clock_t ticks[2];
     ticks[0] = clock();
@@ -204,9 +213,6 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
     double ***solido2 = alocarMatriz(d2, d2, d2);
     copiarMatriz(&solido2, solido, d2, d2, d2);
 
-    int on = 1;
-    double fourier, c_vizinhas_som;
-    double Z = 0, Z2 = 0, valor = 0;
 
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
@@ -220,23 +226,20 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
             {
                 for (int k = 1; k <= dimensao; k++)
                 {
-                    if (0 < i <= dimensao && 0 < j <= dimensao && 0 < k <= dimensao)
-                    {
-                        c_vizinhas_som = (solido[i][j+1][k]
-                                       + solido[i][j-1][k]
-                                       + solido[i-1][j][k]
-                                       + solido[i+1][j][k]
-                                       + solido[i][j][k+1]
-                                       + solido[i][j][k-1]
-                        );
+                    c_vizinhas_som = (solido[i][j+1][k]
+                                   + solido[i][j-1][k]
+                                   + solido[i-1][j][k]
+                                   + solido[i+1][j][k]
+                                   + solido[i][j][k+1]
+                                   + solido[i][j][k-1]
+                    );
 
-                        solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
-                    }
+                    solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação   
                 }
             }
         }
        
-        // print_matriz(solido2, dimensao, dimensao, dimensao);
+        print_matriz(solido2, dimensao, dimensao, dimensao);
 
         valor = 0;
 
@@ -257,9 +260,7 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
             on = 0;
         }
         else
-            Z2 = Z;
-
-        copiarMatriz(&solido, solido2, d2, d2, d2);
+            copiarMatriz(&solido, solido2, d2, d2, d2);
     }
 
     ticks[1] = clock();

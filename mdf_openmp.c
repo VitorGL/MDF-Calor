@@ -30,7 +30,6 @@ void calorMDFThread(double h, double tempo, int dimensao, double alfa);
 
 void calculoDoPonto(int **coords);
 
-void threader();
 
 int main(int argc, char const *argv[])
 {
@@ -173,7 +172,7 @@ double*** modTempPlane(double ***m, int x, int y, int z, int pos, double temp)
     {
         for (int k = 0; k < z; k++)
         {
-            if (nj-1 < j < z-nj && nk-1 < k < z-nk)
+            if (((nj-1 < j) && (j < z-nj)) && ((nk-1 < k) && (k < z-nk)))
                 m[pos][j][k] = temp;
         }
     }
@@ -183,8 +182,23 @@ double*** modTempPlane(double ***m, int x, int y, int z, int pos, double temp)
 
 void calorMDF(double h, double tempo, int dimensao, double alfa)
 {
-    int d2 = dimensao+2;
-    double temp = 35, mod_temp = 0;
+    int d2 = dimensao+2,
+    dim;
+
+    double temp = 35,
+    mod_temp = 0;
+
+    int on = 1;
+
+    double fourier,
+    c_vizinhas_som,
+    f;
+
+    double Z = 0.0,
+    valor = 0.0;
+
+    int tID,
+    nT;
 
     // printf("Digite a temperatura base do cubo:\n");
     // scanf("%lf", &temp);
@@ -196,78 +210,91 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 	clock_t ticks[2];
     ticks[0] = clock();
 
-    double ***solido = modTempPlane(criaMatriz(d2, d2, d2, 35), d2, d2, d2, 0, mod_temp);
+    double ***solido = modTempPlane(criaMatriz(d2, d2, d2, temp), d2, d2, d2, 0, mod_temp);
     double ***solido2 = alocarMatriz(d2, d2, d2);
     copiarMatriz(&solido2, solido, d2, d2, d2);
 
-    int on = 1;
-    double fourier, c_vizinhas_som;
-    double Z = 0.0, Z2 = 0.0, valor = 0.0;
-
-    int tID;
 
     fourier = pow(alfa, 2) * (tempo/pow(h, 2));
 
-    while (on)
+    #pragma omp parallel default(none) private(tID, nT, on, c_vizinhas_som, dim, d2, f, Z) shared(fourier, dimensao, solido, solido2, valor) num_threads(4)
     {
-        #pragma omp parallel default(none)
+        #pragma omp critical
         {
-            tID = omp_get_thread_num();
+            dim = dimensao;
+            f = fourier;
+        }
+
+        d2 = dim+2;
+        on = 1;
+        tID = omp_get_thread_num();
+        nT = omp_get_num_threads();
+
+        printf("thread %d de %d.\n", tID+1, nT);
+        #pragma omp barrier
+
+        while (on)
+        {
 
             #pragma omp for //schedule(dynamic)
-            for (int i = 1; i <= dimensao; i++)
+            for (int i = 1; i <= dim; i++)
             {
-                printf("thread(%d) for(calc)\n", tID);
-                for (int j = 1; j <= dimensao; j++)
+                for (int j = 1; j <= dim; j++)
                 {
-                    for (int k = 1; k <= dimensao; k++)
+                    for (int k = 1; k <= dim; k++)
                     {
-                        if (0 < i <= dimensao && 0 < j <= dimensao && 0 < k <= dimensao)
+                        c_vizinhas_som = (solido[i][j+1][k]
+                                       + solido[i][j-1][k]
+                                       + solido[i-1][j][k]
+                                       + solido[i+1][j][k]
+                                       + solido[i][j][k+1]
+                                       + solido[i][j][k-1]
+                        );
+                        #pragma omp critical
                         {
-                            c_vizinhas_som = (solido[i][j+1][k]
-                                           + solido[i][j-1][k]
-                                           + solido[i-1][j][k]
-                                           + solido[i+1][j][k]
-                                           + solido[i][j][k+1]
-                                           + solido[i][j][k-1]
-                            );
-                            #pragma omp critical
-                            {
-                                solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
-                            }
+                            solido2[i][j][k] = solido[i][j][k] + f * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
                         }
                     }
                 }
             }
 
-            // print_matriz(solido2, dimensao, dimensao, dimensao);
             #pragma omp single
             {
-                valor = 0;
-
-                // tentar fazer uma reduction aqui
-                // #pragma omp for reduction(+: valor)
-                for (int i = 1; i <= dimensao; i++)
-                    for (int j = 1; j <= dimensao; j++)
-                        for (int k = 1; k <= dimensao; k++)
-                            valor += abs(solido[i][j][k] - solido2[i][j][k]);
-
-
-                Z = valor / ((d2) * (d2) * (d2));
-
-                printf("Z = %lf\n\n", Z);
-
-                if (Z <= 0)
-                {
-                    printf("A condicaoo de estabilidade foi atingida com valor (%lf < 0)\n", Z);
-                    on = 0;
-                }
-                else
-                    Z2 = Z;
-
-                copiarMatriz(&solido, solido2, d2, d2, d2);
+                print_matriz(solido2, dim, dim, dim);
             }
 
+            valor = 0;
+            // #pragma omp for reduction(+: valor)
+            for (int i = 1; i <= dim; i++)
+                for (int j = 1; j <= dim; j++)
+                    for (int k = 1; k <= dim; k++)
+                    {
+                        #pragma omp atomic
+                        valor += abs(solido[i][j][k] - solido2[i][j][k]);
+                    }
+            #pragma omp barrier
+
+            Z = valor / ((d2) * (d2) * (d2));
+
+            #pragma omp single
+            printf("Z = %lf\n\n", Z);
+
+            if (Z <= 0)
+            {
+                #pragma omp master
+                printf("(Z < 0)\n");
+                on = 0;
+            }
+            else
+            {
+                #pragma omp single
+                {
+                    for (int i = 0; i < dimensao; ++i)
+                    {
+                        copiarMatriz(&solido, solido2, d2, d2, d2);
+                    }
+                }
+            }
         }
     }
 
