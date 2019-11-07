@@ -177,7 +177,7 @@ double*** modTempPlane(double ***m, int x, int y, int z, int pos, double temp)
     {
         for (int k = 0; k < z; k++)
         {
-            if (nj-1 < j < z-nj && nk-1 < k < z-nk)
+            if (((nj-1 < j) && (j < z-nj)) && ((nk-1 < k) && (k < z-nk)))
                 m[pos][j][k] = temp;
         }
     }
@@ -218,8 +218,7 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
     while (on)
     {
-        // copiarMatriz(&solido2, solido, d2, d2, d2);
-
+        valor = 0;
         for (int i = 1; i <= dimensao; i++)
         {
             for (int j = 1; j <= dimensao; j++)
@@ -235,19 +234,12 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                     );
 
                     solido2[i][j][k] = solido[i][j][k] + fourier * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação   
+                    valor += abs(solido[i][j][k] - solido2[i][j][k]);
                 }
             }
         }
        
-        print_matriz(solido2, dimensao, dimensao, dimensao);
-
-        valor = 0;
-
-        // tentar fazer uma reduction aqui
-        for (int i = 1; i <= dimensao; i++)
-            for (int j = 1; j <= dimensao; j++)
-                for (int k = 1; k <= dimensao; k++)
-                    valor += abs(solido[i][j][k] - solido2[i][j][k]);
+        // print_matriz(solido2, dimensao, dimensao, dimensao);
 
 
         Z = valor / ((d2) * (d2) * (d2));

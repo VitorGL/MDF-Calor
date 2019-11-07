@@ -8,13 +8,13 @@ all:
 
 sequencial:
 	clear
-	gcc -o MDF mdf.c -lm -lpapi
+	gcc -o MDF mdf.c -lm -Ofast
 
 	echo "comando: ./MDF"
 
 openmp:
 	clear
-	gcc -o MDFOpenMP mdf_openmp.c -fopenmp -lm -lpapi -fsanitize=thread
+	gcc -o MDFOpenMP mdf_openmp.c -fopenmp -lm -O1
 
 	echo comando: ./MDFOpenMP
 

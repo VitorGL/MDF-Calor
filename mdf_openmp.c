@@ -235,8 +235,9 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
 
         while (on)
         {
+            valor = 0;
 
-            #pragma omp for //schedule(dynamic)
+            #pragma omp for schedule(auto)
             for (int i = 1; i <= dim; i++)
             {
                 for (int j = 1; j <= dim; j++)
@@ -253,26 +254,24 @@ void calorMDF(double h, double tempo, int dimensao, double alfa)
                         #pragma omp critical
                         {
                             solido2[i][j][k] = solido[i][j][k] + f * (c_vizinhas_som - (6 * solido[i][j][k])); // Equação
+                            valor += abs(solido[i][j][k] - solido2[i][j][k]);
                         }
                     }
                 }
             }
 
-            #pragma omp single
-            {
-                print_matriz(solido2, dim, dim, dim);
-            }
+            // #pragma omp single
+            // print_matriz(solido2, dim, dim, dim);
 
-            valor = 0;
             // #pragma omp for reduction(+: valor)
-            for (int i = 1; i <= dim; i++)
-                for (int j = 1; j <= dim; j++)
-                    for (int k = 1; k <= dim; k++)
-                    {
-                        #pragma omp atomic
-                        valor += abs(solido[i][j][k] - solido2[i][j][k]);
-                    }
-            #pragma omp barrier
+            // #pragma omp single
+            // for (int i = 1; i <= dim; i++)
+            //     for (int j = 1; j <= dim; j++)
+            //         for (int k = 1; k <= dim; k++)
+            //         {
+            //             #pragma omp atomic
+            //         }
+            // #pragma omp barrier
 
             Z = valor / ((d2) * (d2) * (d2));
 
@@ -321,3 +320,18 @@ void print_matriz(double ***m, int x, int y, int z)
         printf("\n\n");
     }
 }
+
+// void print_matriz(double ***m, int x, int y, int z)
+// {
+//     for (int i = 1; i <= x; i++)
+//     {
+//         for (int j = 1; j <= y; j++)
+//         {
+//             for (int k = 1; k <= z; k++)
+//                 // printf("M(%d)(%d)(%d) = %lf  ", i, j, k, m[i][j][k]);
+//                 printf("%lf  ", m[i][j][k]);
+//             printf("\n");
+//         }
+//         printf("\n\n");
+//     }
+// }
