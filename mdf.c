@@ -31,9 +31,7 @@ void calculoDoPonto(int **coords);
 
 void threader();
 
-// List *fila = NULL;
 int dimensao;
-// pthread_mutex_t w_lock;
 
 
 int main(int argc, char const *argv[])
@@ -278,6 +276,9 @@ void print_matriz(double ***m, int x, int y, int z)
         printf("\n\n");
     }
 }
+
+
+
 
 // FILE *arq;
 
