@@ -104,7 +104,7 @@ int main(int argc, char const *argv[])
         {
             int med;
             #pragma omp for
-            for (int p = 0; p <= partes; p++)
+            for (int p = 0; p < partes; p++)
             {
                 med = (p <= (cores*tamanho_partes)) ? tamanho_partes : tamanho_extra;
                 for (int i = 1; i <= med; ++i)
