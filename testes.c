@@ -19,13 +19,27 @@ void printIt(double *m, int tam)
     printf("\n");
 }
 
+void printItN(double **m, int tam, int prts, int extra, int cores)
+{
+    int med;
+    for (int i = 1; i <= tam; i += prts)
+    {
+        med = (i <= (cores*prts)) ? prts : extra;
+        for (int j = 1; j < med+1; ++j)
+        {
+            printf("%.1lf\n", m[(int)((i-1)/prts)][j]);
+        }
+    }
+    printf("\n");   
+}
+
 int main(int argc, char const *argv[])
 {
     clock_t ticks[2];
     ticks[0] = clock();
 
     int on, tID, nT;
-    int dimensao = 10,
+    int dimensao = 1000000,
     d2 = dimensao+2;
     double valor = 0, Z;
     int i;
@@ -33,17 +47,17 @@ int main(int argc, char const *argv[])
     double *solido = (double*) malloc(d2 * sizeof(double));
     double *solido2 = (double*) malloc(d2 * sizeof(double));
     double **partes_solido;
-    double **partes_solido2;
 
     for (i = 0; i < d2; ++i)
     {
-        solido[i] = 10+i;
-        solido2[i] = 10+i;
+        solido[i] = 10;
+        solido2[i] = 10;
     }
-    solido[0] = 80;
-    solido2[0] = 80;
+    solido[0] = 1000;
+    solido2[0] = 1000;
 
-    int cores = 4;
+    int cores = 8;
+
     int tamanho_partes = dimensao/cores;
     int tamanho_extra = dimensao%cores;
     int partes = (0 < tamanho_extra) ? cores+1 : cores;
@@ -71,97 +85,87 @@ int main(int argc, char const *argv[])
         for (int j = 0; j < med+2; ++j)
         {
             partes_solido[(int)((i-1)/tamanho_partes)][j] = solido[i+j-1];
-            printf("solido[%d][%d] = %lf\n", (int)((i-1)/tamanho_partes), j, partes_solido[(int)((i-1)/tamanho_partes)][j]);
+            // printf("solido[%d][%d] = %lf\n", (int)((i-1)/tamanho_partes), j, partes_solido[(int)((i-1)/tamanho_partes)][j]);
         }
-    }
-
-    for (i = 1; i <= dimensao; i += tamanho_partes)
-    {
-        med = (i <= (cores*tamanho_partes)) ? tamanho_partes : tamanho_extra;
-        for (int j = 1; j < med+1; ++j)
-        {
-            printf("solido[%d][%d] = %.1lf\n", (int)((i-1)/tamanho_partes), j, partes_solido[(int)((i-1)/tamanho_partes)][j]);
-        }
-        printf("\n");
     }
 
     double fourier = pow(1.0, 2) * (0.1/pow(1, 2));
 
 
-    #pragma omp parallel default(none) private(tID, nT, on, dimensao, fourier, Z) shared(cores, partes, partes_solido, partes_solido2, valor, tamanho_partes, tamanho_extra) num_threads(3)
+    #pragma omp parallel default(none) private(tID, nT, on, dimensao, fourier, Z) shared(cores, partes, partes_solido, solido2, valor, tamanho_partes, tamanho_extra) num_threads(cores)
     {
-        dimensao = tamanho_partes;
+        dimensao = 1000000;
         fourier = pow(1.0, 2) * (0.1/pow(1, 2));
 
         on = 1;
         tID = omp_get_thread_num();
         nT = omp_get_num_threads();
         printf("thread %d de %d.\n", tID+1, nT);
-        // med = (i <= (cores*tamanho_partes)) ? tamanho_partes : tamanho_extra;
-
+        int med;
+        int j;
         #pragma omp barrier
+
         while (on)
         {
-            int med;
             #pragma omp for
-            for (int p = 0; p < partes; p++)
+            for (int p = 1; p <= dimensao; p += tamanho_partes)
             {
+                j = (int)((p-1)/tamanho_partes);
                 med = (p <= (cores*tamanho_partes)) ? tamanho_partes : tamanho_extra;
                 for (int i = 1; i <= med; ++i)
                 {
-                    printf("solido[%d][%d] = %d\n", p, i, partes_solido[p][i]);
-                    // partes_solido2[p][i] = partes_solido[p][i] + (fourier * (partes_solido[p][i+1] - (2 * partes_solido[p][i]) + partes_solido[p][i-1]));
-                    // printf("thread %d ---- %.1lf = %.1lf + (%.1lf * (%.1lf - (2* %.1lf) + %.1lf))\n", tID, solido2[i], solido[i], fourier, solido[i+1], solido[i], solido[i-1]);
+                    solido2[p+i-1] = partes_solido[j][i] + (fourier * (partes_solido[j][i+1] - (2 * partes_solido[j][i]) + partes_solido[j][i-1]));
+                    // printf("thread %d ---- %.1lf = %.1lf + (%.1lf * (%.1lf - (2* %.1lf) + %.1lf))\n", tID, solido2[i], partes_solido[j][i], fourier, partes_solido[j][i+1], partes_solido[j][i], partes_solido[j][i-1]);
+
+                    // printf("p_solido[%d][%d] = %.1lf\n", j, i, partes_solido[j][i]);
+                    // printf("solido2[%d] = %.1lf\n\n", p+i-1, solido2[p+i-1]);
                 }
             }
-            break;
 
-    //         #pragma omp single
-    //         {
-    //             printIt(solido2, dimensao);
-    //             printIt(solido, dimensao);
-    //         }
+            // #pragma omp single
+            // {
+            //     // printIt(solido2, dimensao);
+            //     // printItN(partes_solido, dimensao, tamanho_partes, tamanho_extra, cores);
+            // }
 
-    //         valor = 0;
+            valor = 0;
             
-    //         // #pragma omp for reduction(+: valor)
-    //         for (int i = 1; i < dimensao; i++)
-    //         {
-    //             #pragma omp atomic
-    //             valor += abs(solido2[i] - solido[i]);
-    //             // printf("thread %d ---- %.1lf += (%.1lf - %.1lf)\n", tID, valor, solido2[i], solido[i]);
-    //         }
-    //         #pragma omp barrier
-    //         Z = valor / (dimensao);
+            // #pragma omp for reduction(+: valor)
+            for (int p = 1; p <= dimensao; p += tamanho_partes)
+            {
+                j = (int)((p-1)/tamanho_partes);
+                med = (p <= (cores*tamanho_partes)) ? tamanho_partes : tamanho_extra;
+                for (int i = 1; i <= med; ++i)
+                {
+                    valor += abs(solido2[p+i-1] - partes_solido[j][i]);
+                }
+            }
+            
+            Z = valor / (dimensao);
 
-    //         // printf("Z = %lf, valor = %lf\n\n", Z, valor);
+            // printf("Z = %lf, valor = %lf\n\n", Z, valor);
 
-    //         #pragma omp single
-    //         printf("Z = %lf > 0\n\n", Z);
+            #pragma omp master
+            printf("Z = %lf > 0\n\n", Z);
 
-    //         // if (Z <= 0)
-    //         // {
-    //         //     printf("%lf < 0\n", Z);
-    //         //     on = 0;
-    //         // }
-
-    //         if (Z <= 0)
-    //         {
-    //             #pragma omp master
-    //             printf("Z < 0\n");
-    //             on = 0;
-    //         }
-    //         else
-    //         {
-    //             #pragma omp single
-    //             {
-    //                 for (int i = 0; i < dimensao; ++i)
-    //                 {
-    //                     solido[i] = solido2[i];
-    //                 }
-    //             }
-    //         }
-
+            if (Z <= 0)
+            {
+                #pragma omp master
+                printf("Z < 0\n");
+                on = 0;
+            }
+            else
+            {
+                #pragma omp for
+                for (int i = 1; i <= dimensao; i += tamanho_partes)
+                {
+                    med = (i <= (cores*tamanho_partes)) ? tamanho_partes : tamanho_extra;
+                    for (int j = 0; j < med+2; ++j)
+                    {
+                        partes_solido[(int)((i-1)/tamanho_partes)][j] = solido2[i+j-1];
+                    }
+                }
+            }
         }
     }   
     free(solido);
